@@ -1,0 +1,219 @@
+<?php
+session_start();
+$dbuser = "root";
+$dbpass = "";
+$host = "localhost:3307";
+$db = "project";
+$mysqli = new mysqli($host, $dbuser, $dbpass, $db);
+
+$errors = array();
+$succ = "";
+$u_fname = '';
+$u_lname = '';
+$u_phone = '';
+$u_addr = '';
+$u_email = '';
+$u_pwd = '';
+
+if (isset($_POST['add_user'])) {
+    $u_fname = isset($_POST['u_fname']) ? $_POST['u_fname'] : '';
+    $u_lname = isset($_POST['u_lname']) ? $_POST['u_lname'] : '';
+    $u_phone = isset($_POST['u_phone']) ? $_POST['u_phone'] : '';
+    $u_addr = isset($_POST['u_addr']) ? $_POST['u_addr'] : '';
+    $u_email = isset($_POST['u_email']) ? $_POST['u_email'] : '';
+    $u_pwd = isset($_POST['u_pwd']) ? $_POST['u_pwd'] : '';
+    $u_category = "User"; // Hardcoded value
+
+    // Validation for First Name
+    if (empty($u_fname)) {
+        $errors[] = "First name is required.";
+    } elseif (!preg_match("/^[a-zA-Z ]+$/", $u_fname)) {
+        $errors[] = "First name should contain only letters and spaces.";
+    }
+
+    // Validation for Last Name
+    if (empty($u_lname)) {
+        $errors[] = "Last name is required.";
+    } elseif (!preg_match("/^[a-zA-Z ]+$/", $u_lname)) {
+        $errors[] = "Last name should contain only letters and spaces.";
+    }
+
+    // Validation for Phone Number
+    if (empty($u_phone)) {
+        $errors[] = "Phone number is required.";
+    } elseif (!preg_match("/^[0-9]{10}$/", $u_phone)) {
+        $errors[] = "Phone number should be 10 digits.";
+    }
+
+    // Validation for Address
+    if (empty($u_addr)) {
+        $errors[] = "Address is required.";
+    }
+
+    // Validation for Email
+    if (empty($u_email)) {
+        $errors[] = "Email is required.";
+    } elseif (!filter_var($u_email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Invalid email format.";
+    }
+
+    // Validation for Password
+    if (empty($u_pwd)) {
+        $errors[] = "Password is required.";
+    } elseif (!preg_match("/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/", $u_pwd)) {
+        $errors[] = "Password should be at least 8 characters and include upper case, lower case, and digits.";
+    }
+
+    if (empty($errors)) {
+        // Check if the email already exists in the database
+        $query = "SELECT u_email FROM tms_user WHERE u_email = ?";
+        $stmt = $mysqli->prepare($query);
+        $stmt->bind_param('s', $u_email);
+        $stmt->execute();
+        $stmt->store_result();
+
+        if ($stmt->num_rows > 0) {
+            $errors[] = "Email already exists in the database.";
+        } else {
+            // If the email is not in the database, proceed with inserting the user data
+            $hashed_password = password_hash($u_pwd, PASSWORD_DEFAULT);
+            $query = "INSERT INTO tms_user (u_fname, u_lname, u_phone, u_addr, u_category, u_email, u_pwd) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $mysqli->prepare($query);
+            $stmt->bind_param('sssssss', $u_fname, $u_lname, $u_phone, $u_addr, $u_category, $u_email, $hashed_password);
+            $stmt->execute();
+
+            if ($stmt) {
+                $succ = "Account Created. Proceed To Log In";
+            } else {
+                $errors[] = "Please Try Again Later";
+            }
+        }
+        $stmt->close();
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE-edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Transport Management System, Saccos, Matwana Culture">
+    <meta name="author" content="MartDevelopers">
+    <title>Transport Management System Client - Register</title>
+    <!-- Custom fonts for this template -->
+    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <!-- Custom styles for this template -->
+    <link href="vendor/css/sb-admin.css" rel="stylesheet">
+    <style>
+        .error {
+            color: red;
+        }
+        .success {
+            color: blue;
+        }
+    </style>
+</head>
+<body class="bg-dark">
+<div class="container">
+    <div class="card card-register mx-auto mt-5">
+        <div class="card-header">Create An Account With Us</div>
+        <div class="card-body">
+            <?php if (!empty($succ)) { ?>
+                <p class="success"><?php echo $succ; ?></p>
+            <?php } ?>
+            <form method="post">
+                <div class="form-group">
+                    <div class="form-row">
+                        <div class="col-md-4">
+                            <div class="form-label-group">
+                                <input type="text"  class="form-control" id="u_fname" name="u_fname" value="<?php echo $u_fname; ?>">
+                                <label for="u_fname">First name</label>
+                                <?php if (isset($errors) && in_array("First name is required.", $errors)) {
+                                    echo '<span class="error">First name is required.</span>';
+                                } elseif (isset($errors) && in_array("First name should contain only letters and spaces.", $errors)) {
+                                    echo '<span class="error">First name should contain only letters and spaces.</span>';
+                                } ?>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-label-group">
+                                <input type="text" class="form-control" id="u_lname" name="u_lname" value="<?php echo $u_lname; ?>">
+                                <label for="u_lname">Last name</label>
+                                <?php if (isset($errors) && in_array("Last name is required.", $errors)) {
+                                    echo '<span class="error">Last name is required.</span>';
+                                } elseif (isset($errors) && in_array("Last name should contain only letters and spaces.", $errors)) {
+                                    echo '<span class="error">Last name should contain only letters and spaces.</span>';
+                                } ?>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-label-group">
+                                <input type="text" class="form-control" id="u_phone" name="u_phone" value="<?php echo $u_phone; ?>">
+                                <label for="u_phone">Contact</label>
+                                <?php if (isset($errors) && in_array("Phone number is required.", $errors)) {
+                                    echo '<span class="error">Phone number is required.</span>';
+                                } elseif (isset($errors) && in_array("Phone number should be 10 digits.", $errors)) {
+                                    echo '<span class="error">Phone number should be 10 digits.</span>';
+                                } ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-label-group">
+                        <input type="varchar" class="form-control" id="u_addr" name="u_addr" value="<?php echo $u_addr; ?>">
+                        <label for "u_addr">Address</label>
+                        <?php if (isset($errors) && in_array("Address is required.", $errors)) {
+                            echo '<span class="error">Address is required.</span>';
+                        }
+                        ?>
+                    </div>
+                </div>
+                <div class="form-group" style="display: none;">
+                    <div class="form-label-group">
+                        <input type="text" class="form-control" id="u_category" value="User" name="u_category">
+                        <label for="u_category">User Category</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-label-group">
+                        <input type="email" class="form-control" id="u_email" name="u_email" value="<?php echo $u_email; ?>">
+                        <label for="u_email">Email address</label>
+                        <?php if (in_array("Email already exists in the database.", $errors)) {
+                echo '<span class="error">Email already exists.</span>';
+            } elseif (isset($errors) && in_array("Email is required.", $errors)) {
+                echo '<span class="error">Email is required.</span>';
+            } elseif (isset($errors) && in_array("Invalid email format.", $errors)) {
+                echo '<span class="error">Invalid email format.</span>';
+            } ?>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-row">
+                        <div class="col-md-12">
+                            <div class="form-label-group">
+                                <input type="password" class="form-control" id="u_pwd" name="u_pwd">
+                                <label for="u_pwd">Password</label>
+                                <?php if (isset($errors) && in_array("Password is required.", $errors)) {
+                                    echo '<span class="error">Password is required.</span>';
+                                } elseif (isset($errors) && in_array("Password should be at least 8 characters and include upper case, lower case, and digits.", $errors)) {
+                                    echo '<span class="error">Password should be at least 8 characters and include upper case, lower case, and digits.</span>';
+                                } ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" name="add_user" class="btn btn-success">Create Account</button>
+            </form>
+            <div class="text-center">
+                <a class="d-block small mt-3" href="user-login.php">Login Page</a>
+                <a class="d-block small" href="usr-forgot-password.php">Forgot Password?</a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ... (The rest of your HTML code) ... -->
+</body>
+</html>
